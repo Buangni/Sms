@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors');     // ✅ load cors
+const cors = require('cors');     
 const axios = require('axios');
 const qs = require('qs');
 const crypto = require('crypto');
@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());                  // ✅ enable CORS for all routes
+app.use(cors());                  
 
 function normalizeNumber(raw) {
   let number = raw.replace(/\D/g, '');
@@ -32,15 +32,21 @@ function randomUserAgent() {
   return agents[Math.floor(Math.random() * agents.length)];
 }
 
+// 🟢 Homepage branding
 app.get('/', (req, res) => {
-  res.send('🌸 Welcome to the SMS API<br><br>GET /textsms?n=09xxxxxxxxx&t=your_message<br><br>🌸 Powered by Jay Mar<br><br>🌸 Contact Jay Mar on Facebook: <a href="https://www.facebook.com/12345678910111q" target="_blank">Click here</a>');
+  res.send(`
+    🧺 Welcome to MAMA'S LAUNDRY SMS Service<br><br>
+    Use: /textsms?n=09xxxxxxxxx&t=your_message<br><br>
+    ✅ Messages sent to customers will appear as reminders/notifications.<br><br>
+    💡 Example: <a href="/textsms?n=09947064586&t=Your laundry is ready for pickup!">Click here to test</a>
+  `);
 });
 
 app.get('/textsms', async (req, res) => {
   const { n: inputNumber, t: inputText } = req.query;
 
   if (!inputNumber || !inputText) {
-    return res.status(400).json({ error: 'Please provide (number) or (text) parameter' });
+    return res.status(400).json({ error: 'Please provide (number) and (text) parameter' });
   }
 
   const normalized = normalizeNumber(inputNumber);
@@ -48,8 +54,9 @@ app.get('/textsms', async (req, res) => {
     return res.status(400).json({ error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' });
   }
 
-  const suffix = '-freed0m';
-  const credits = '\n\nThis is a free text, official PH content crafted by Jaymar.';
+  // 🟢 Customize text footer for laundry
+  const suffix = '-MAMAS-LAUNDRY';
+  const credits = '\n\nThank you for trusting MAMA’S LAUNDRY 🧺';
   const withSuffix = inputText.endsWith(suffix) ? inputText : `${inputText} ${suffix}`;
   const finalText = `${withSuffix}${credits}`;
 
@@ -88,18 +95,18 @@ app.get('/textsms', async (req, res) => {
       success: true,
       data: {
         message: response.data.message,
-        author: "Jay Mar"
+        author: "MAMA'S LAUNDRY 🧺"
       }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to send sms\nPlease contact Jay Mar on facebook: https://www.facebook.com/12345678910111q',
+      message: '❌ Failed to send SMS. Please contact MAMA’S LAUNDRY admin.',
       error: error.response?.data || error.message
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 MAMA'S LAUNDRY SMS Server running on http://localhost:${PORT}`);
 });
