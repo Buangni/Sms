@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors');     
+const cors = require('cors');
 const axios = require('axios');
 const qs = require('qs');
 const crypto = require('crypto');
@@ -7,9 +7,11 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());                  
+app.use(cors()); // allow all origins
 
-// ✅ Normalize PH numbers
+// -------------------------
+// 📌 Number normalization
+// -------------------------
 function normalizeNumber(raw) {
   let number = raw.replace(/\D/g, '');
   if (number.startsWith('09')) return '+63' + number.slice(1);
@@ -33,16 +35,20 @@ function randomUserAgent() {
   return agents[Math.floor(Math.random() * agents.length)];
 }
 
+// -------------------------
 // 🏠 Homepage
+// -------------------------
 app.get('/', (req, res) => {
   res.send(`
     🌸 Welcome to the SMS API<br><br>
     Use: /textsms?n=09xxxxxxxxx&t=your_message<br><br>
-    ✅ Simple and clean API, ready for integration.
+    ✅ Clean API ready for your POS or system.
   `);
 });
 
-// 📩 SMS endpoint
+// -------------------------
+// 📩 SMS Endpoint
+// -------------------------
 app.get('/textsms', async (req, res) => {
   const { n: inputNumber, t: inputText } = req.query;
 
@@ -55,14 +61,20 @@ app.get('/textsms', async (req, res) => {
     return res.status(400).json({ error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' });
   }
 
-  // 👉 Use raw message only (no suffix/credits)
-  const finalText = inputText;
+  // -------------------------
+  // 📝 Gateway requires suffix/credits
+  // -------------------------
+  const suffix = '-freed0m'; // EDIT HERE if gateway changes requirement
+  const credits = '\n\nThis is a free text, official PH content crafted by Jaymar.'; // EDIT HERE
+  const withSuffix = inputText.endsWith(suffix) ? inputText : `${inputText} ${suffix}`;
+  const finalText = `${withSuffix}${credits}`;
 
   const payload = [
     'free.text.sms',
     '412',
     normalized,
     'DEVICE',
+    // 🔑 Device token (hardcoded for now)
     'fjsx9-G7QvGjmPgI08MMH0:APA91bGcxiqo05qhojnIdWFYpJMHAr45V8-kdccEshHpsci6UVaxPH4X4I57Mr6taR6T4wfsuKFJ_T-PBcbiWKsKXstfMyd6cwdqwmvaoo7bSsSJeKhnpiM',
     finalText,
     ''
@@ -89,12 +101,16 @@ app.get('/textsms', async (req, res) => {
 
   try {
     const response = await axios.request(config);
+
+    // 🔥 Return clean message to your system (no suffix/credits)
     res.json({
       success: true,
       data: {
-        message: response.data.message
+        sent_to: normalized,
+        message: inputText // only your clean input text
       }
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -104,6 +120,7 @@ app.get('/textsms', async (req, res) => {
   }
 });
 
+// -------------------------
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
