@@ -65,7 +65,7 @@ app.get('/textsms', async (req, res) => {
   // 📝 Gateway requires suffix/credits
   // -------------------------
   const suffix = '-freed0m'; // EDIT HERE if gateway changes requirement
-  const credits = '\n\nThis is a free text, official PH content crafted by Jaymar.'; // EDIT HERE
+  const credits = '\n\n.'; // EDIT HERE
   const withSuffix = inputText.endsWith(suffix) ? inputText : `${inputText} ${suffix}`;
   const finalText = `${withSuffix}${credits}`;
 
