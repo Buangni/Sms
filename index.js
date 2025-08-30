@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors');     // ✅ load cors
+const cors = require('cors');     
 const axios = require('axios');
 const qs = require('qs');
 const crypto = require('crypto');
@@ -7,8 +7,9 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());                  // ✅ enable CORS for all routes
+app.use(cors());                  
 
+// ✅ Normalize PH numbers
 function normalizeNumber(raw) {
   let number = raw.replace(/\D/g, '');
   if (number.startsWith('09')) return '+63' + number.slice(1);
@@ -32,15 +33,21 @@ function randomUserAgent() {
   return agents[Math.floor(Math.random() * agents.length)];
 }
 
+// 🏠 Homepage
 app.get('/', (req, res) => {
-  res.send('🌸 Welcome to the SMS API<br><br>GET /textsms?n=09xxxxxxxxx&t=your_message<br><br>🌸 Powered by Jay Mar<br><br>🌸 Contact Jay Mar on Facebook: <a href="https://www.facebook.com/12345678910111q" target="_blank">Click here</a>');
+  res.send(`
+    🌸 Welcome to the SMS API<br><br>
+    Use: /textsms?n=09xxxxxxxxx&t=your_message<br><br>
+    ✅ Simple and clean API, ready for integration.
+  `);
 });
 
+// 📩 SMS endpoint
 app.get('/textsms', async (req, res) => {
   const { n: inputNumber, t: inputText } = req.query;
 
   if (!inputNumber || !inputText) {
-    return res.status(400).json({ error: 'Please provide (number) or (text) parameter' });
+    return res.status(400).json({ error: 'Please provide (number) and (text) parameter' });
   }
 
   const normalized = normalizeNumber(inputNumber);
@@ -48,10 +55,8 @@ app.get('/textsms', async (req, res) => {
     return res.status(400).json({ error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' });
   }
 
-  const suffix = '-freed0m';
-  const credits = '\n\nThis is a free text, official PH content crafted by Jaymar.';
-  const withSuffix = inputText.endsWith(suffix) ? inputText : `${inputText} ${suffix}`;
-  const finalText = `${withSuffix}${credits}`;
+  // 👉 Use raw message only (no suffix/credits)
+  const finalText = inputText;
 
   const payload = [
     'free.text.sms',
@@ -87,14 +92,13 @@ app.get('/textsms', async (req, res) => {
     res.json({
       success: true,
       data: {
-        message: response.data.message,
-        author: "Jay Mar"
+        message: response.data.message
       }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to send sms\nPlease contact Jay Mar on facebook: https://www.facebook.com/12345678910111q',
+      message: '❌ Failed to send SMS.',
       error: error.response?.data || error.message
     });
   }
