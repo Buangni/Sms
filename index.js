@@ -1,10 +1,13 @@
 const express = require('express');
+const cors = require('cors');     // ✅ load cors
 const axios = require('axios');
 const qs = require('qs');
 const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use(cors());                  // ✅ enable CORS for all routes
 
 function normalizeNumber(raw) {
   let number = raw.replace(/\D/g, '');
