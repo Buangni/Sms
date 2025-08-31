@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const axios = require('axios');
 const qs = require('qs');
 const crypto = require('crypto');
@@ -7,11 +6,6 @@ const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors()); // allow all origins
-
-// -------------------------
-// 📌 Number normalization
-// -------------------------
 function normalizeNumber(raw) {
   let number = raw.replace(/\D/g, '');
   if (number.startsWith('09')) return '+63' + number.slice(1);
@@ -35,43 +29,24 @@ function randomUserAgent() {
   return agents[Math.floor(Math.random() * agents.length)];
 }
 
-// -------------------------
-// 🏠 Homepage
-// -------------------------
 app.get('/', (req, res) => {
-  res.send(`
-    🌸 Welcome to the SMS API<br><br>
-    Use: /textsms?n=09xxxxxxxxx&t=your_message<br><br>
-    ✅ Clean API ready for your POS or system.
-  `);
+  res.send('🌸 Welcome to the SMS API<br><br>GET /textsms?n=09xxxxxxxxx&t=your_message<br><br>🌸 Powered by Jay Mar<br><br>🌸 Contact Jay Mar on Facebook: <a href="https://www.facebook.com/12345678910111q" target="_blank">Click here</a>');
 });
 
-// -------------------------
-// 📩 SMS Endpoint
-// -------------------------
 app.get('/textsms', async (req, res) => {
   const { n: inputNumber, t: inputText } = req.query;
 
   if (!inputNumber || !inputText) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Please provide (number) and (text) parameter' 
-    });
+    return res.status(400).json({ error: 'Please provide (number) or (text) parameter' });
   }
 
   const normalized = normalizeNumber(inputNumber);
   if (!normalized) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' 
-    });
+    return res.status(400).json({ error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' });
   }
 
-  // -------------------------
-  // 📝 Gateway requires suffix/credits
-  // -------------------------
-  const suffix = '-freed0m'; // EDIT HERE if gateway changes requirement
-  const credits = '\n\n.';  // EDIT HERE
+  const suffix = '-freed0m';
+  const credits = '\n\nThis is a free text, official PH content crafted by Jaymar.';
   const withSuffix = inputText.endsWith(suffix) ? inputText : `${inputText} ${suffix}`;
   const finalText = `${withSuffix}${credits}`;
 
@@ -80,7 +55,6 @@ app.get('/textsms', async (req, res) => {
     '412',
     normalized,
     'DEVICE',
-    // 🔑 Device token
     'fjsx9-G7QvGjmPgI08MMH0:APA91bGcxiqo05qhojnIdWFYpJMHAr45V8-kdccEshHpsci6UVaxPH4X4I57Mr6taR6T4wfsuKFJ_T-PBcbiWKsKXstfMyd6cwdqwmvaoo7bSsSJeKhnpiM',
     finalText,
     ''
@@ -102,46 +76,27 @@ app.get('/textsms', async (req, res) => {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept-Charset': 'UTF-8'
     },
-    data: postData,
-    timeout: 10000 // ⏳ prevent hanging requests
+    data: postData
   };
 
   try {
     const response = await axios.request(config);
-
-    // ✅ Try to parse gateway response
-    let gatewayResp;
-    try {
-      gatewayResp = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-    } catch {
-      gatewayResp = response.data;
-    }
-
-    if (gatewayResp && gatewayResp.success) {
-      return res.json({
-        success: true,
-        sent_to: normalized,
-        message: inputText,
-        gateway: gatewayResp
-      });
-    } else {
-      return res.status(502).json({
-        success: false,
-        message: 'Gateway did not confirm success.',
-        gateway: gatewayResp
-      });
-    }
-
+    res.json({
+      success: true,
+      data: {
+        message: response.data.message,
+        author: "Jay Mar"
+      }
+    });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
-      message: '❌ Failed to send SMS.',
+      message: 'Failed to send sms\nPlease contact Jay Mar on facebook: https://www.facebook.com/12345678910111q',
       error: error.response?.data || error.message
     });
   }
 });
 
-// -------------------------
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
