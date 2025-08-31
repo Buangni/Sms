@@ -53,19 +53,25 @@ app.get('/textsms', async (req, res) => {
   const { n: inputNumber, t: inputText } = req.query;
 
   if (!inputNumber || !inputText) {
-    return res.status(400).json({ error: 'Please provide (number) and (text) parameter' });
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Please provide (number) and (text) parameter' 
+    });
   }
 
   const normalized = normalizeNumber(inputNumber);
   if (!normalized) {
-    return res.status(400).json({ error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' });
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Invalid number format (09xxxxxxxxx) or (+63xxxxxxxxxx) only accepted.' 
+    });
   }
 
   // -------------------------
   // 📝 Gateway requires suffix/credits
   // -------------------------
   const suffix = '-freed0m'; // EDIT HERE if gateway changes requirement
-  const credits = '\n\n.'; // EDIT HERE
+  const credits = '\n\n.';  // EDIT HERE
   const withSuffix = inputText.endsWith(suffix) ? inputText : `${inputText} ${suffix}`;
   const finalText = `${withSuffix}${credits}`;
 
@@ -74,7 +80,7 @@ app.get('/textsms', async (req, res) => {
     '412',
     normalized,
     'DEVICE',
-    // 🔑 Device token (hardcoded for now)
+    // 🔑 Device token
     'fjsx9-G7QvGjmPgI08MMH0:APA91bGcxiqo05qhojnIdWFYpJMHAr45V8-kdccEshHpsci6UVaxPH4X4I57Mr6taR6T4wfsuKFJ_T-PBcbiWKsKXstfMyd6cwdqwmvaoo7bSsSJeKhnpiM',
     finalText,
     ''
@@ -96,23 +102,38 @@ app.get('/textsms', async (req, res) => {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept-Charset': 'UTF-8'
     },
-    data: postData
+    data: postData,
+    timeout: 10000 // ⏳ prevent hanging requests
   };
 
   try {
     const response = await axios.request(config);
 
-    // 🔥 Return clean message to your system (no suffix/credits)
-    res.json({
-      success: true,
-      data: {
+    // ✅ Try to parse gateway response
+    let gatewayResp;
+    try {
+      gatewayResp = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+    } catch {
+      gatewayResp = response.data;
+    }
+
+    if (gatewayResp && gatewayResp.success) {
+      return res.json({
+        success: true,
         sent_to: normalized,
-        message: inputText // only your clean input text
-      }
-    });
+        message: inputText,
+        gateway: gatewayResp
+      });
+    } else {
+      return res.status(502).json({
+        success: false,
+        message: 'Gateway did not confirm success.',
+        gateway: gatewayResp
+      });
+    }
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: '❌ Failed to send SMS.',
       error: error.response?.data || error.message
